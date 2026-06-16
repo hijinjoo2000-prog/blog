@@ -43,9 +43,27 @@ def fmt(ex):
 ds = ds.map(fmt, batched=False).filter(lambda x: x["text"] != "")
 
 print("\n🏗️ [시스템] 가상 학습 엔진 조립 완료!")
+from trl import SFTConfig
 trainer = SFTTrainer(
-    model = model, tokenizer = tokenizer, train_dataset = ds, dataset_text_field = "text", max_seq_length = 2048,
-    args = TrainingArguments(per_device_train_batch_size = 2, gradient_accumulation_steps = 4, warmup_steps = 5, max_steps = 60, learning_rate = 2e-4, fp16 = not torch.cuda.is_bf16_supported(), bf16 = torch.cuda.is_bf16_supported(), logging_steps = 1, optim = "adamw_8bit", weight_decay = 0.01, lr_scheduler_type = "linear", seed = 3407, output_dir = "./outputs", save_strategy = "no")
+    model = model, tokenizer = tokenizer, train_dataset = ds,
+    args = SFTConfig(
+        dataset_text_field = "text",
+        max_seq_length = 2048,
+        per_device_train_batch_size = 2,
+        gradient_accumulation_steps = 4,
+        warmup_steps = 5,
+        max_steps = 60,
+        learning_rate = 2e-4,
+        fp16 = not torch.cuda.is_bf16_supported(),
+        bf16 = torch.cuda.is_bf16_supported(),
+        logging_steps = 1,
+        optim = "adamw_8bit",
+        weight_decay = 0.01,
+        lr_scheduler_type = "linear",
+        seed = 3407,
+        output_dir = "./outputs",
+        save_strategy = "no"
+    )
 )
 print("\n🔥 [시스템] 파인튜닝 지식 주입 진짜 최종 시작...")
 trainer.train()
@@ -56,3 +74,4 @@ gc.collect(); torch.cuda.empty_cache()
 print("\n📦 [시스템] 지정하신 최종 허깅페이스 창고(seojinju8818/marketing-v7)로 자동 업로드를 개시합니다...")
 model.push_to_hub_gguf("seojinju8818/marketing-v7", tokenizer, quantization_method = "q4_k_m", token = hf_token)
 print("\n🎉 [대성공] 멀티 파트 AI 자산(.gguf) 빌드가 최종 완결되었습니다!")
+
