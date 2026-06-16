@@ -1,5 +1,5 @@
 # ==========================================================================
-# 👑 PRO부동산 master_dataset.jsonl 멀티 라우팅 최종 스크립트 (v7.8 순정 가드형)
+# 👑 PRO부동산 master_dataset.jsonl 멀티 라우팅 최종 스크립트 (v7.9 패치형)
 # ==========================================================================
 print("📥 [시스템] 코랩 내부 직접 주입 성공! 필수 패키지 설치 기동...")
 import os
@@ -25,7 +25,8 @@ model = FastLanguageModel.get_peft_model(model, r = 16, target_modules = ["q_pro
 print("\n📦 [시스템] 지정된 멀티 깃허브 저장소(hijinjoo2000-prog/blog)에서 데이터를 원격 호출합니다...")
 ds = load_dataset("json", data_files="https://raw.githubusercontent.com/hijinjoo2000-prog/blog/main/master_dataset.jsonl", split="train")
 
-tokenizer = get_chat_template(tokenizer, chat_template="gemma-2")
+# ✨ [KeyError 해결] 최신 규격인 하이픈(-) 대신 언더바(_)로 패치 완료
+tokenizer = get_chat_template(tokenizer, chat_template="gemma_2")
 
 def fmt(ex):
     cleaned = []
