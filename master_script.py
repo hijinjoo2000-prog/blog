@@ -1,9 +1,10 @@
 # ==========================================================================
-# 👑 PRO부동산 master_dataset.jsonl 서식 마스킹 가드 최종 스크립트 (v7.5)
+# 👑 PRO부동산 master_dataset.jsonl 멀티 라우팅 최종 스크립트 (v7.8 순정 가드형)
 # ==========================================================================
-print("📥 [시스템] 원격 주입 성공! 필수 패키지 및 부품 완벽 설치...")
-!pip install --no-deps "unsloth[colab-new] @ git+https://github.com/unslothai/unsloth.git"
-!pip install --no-deps trl peft loralib bitsandbytes xformers unsloth_zoo
+print("📥 [시스템] 코랩 내부 직접 주입 성공! 필수 패키지 설치 기동...")
+import os
+os.system('pip install --no-deps "unsloth[colab-new] @ git+https://github.com/unslothai/unsloth.git"')
+os.system('pip install --no-deps trl peft loralib bitsandbytes xformers unsloth_zoo')
 
 import gc
 import torch
@@ -21,26 +22,22 @@ print("\n🔄 [시스템] 베이스 모델 로딩 중...")
 model, tokenizer = FastLanguageModel.from_pretrained(model_name = "unsloth/gemma-2-9b-it", max_seq_length = 2048, dtype = None, load_in_4bit = True)
 model = FastLanguageModel.get_peft_model(model, r = 16, target_modules = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"], lora_alpha = 16, lora_dropout = 0, bias = "none", use_gradient_checkpointing = "unsloth", random_state = 3407)
 
-print("\n📦 [시스템] 깃허브에서 master_dataset.jsonl 데이터를 로드합니다...")
+print("\n📦 [시스템] 지정된 멀티 깃허브 저장소(hijinjoo2000-prog/blog)에서 데이터를 원격 호출합니다...")
 ds = load_dataset("json", data_files="https://raw.githubusercontent.com/hijinjoo2000-prog/blog/main/master_dataset.jsonl", split="train")
-tokenizer = get_chat_template(tokenizer, chat_template="gemma-4")
+
+tokenizer = get_chat_template(tokenizer, chat_template="gemma-2")
 
 def fmt(ex):
     cleaned = []
     for turn in ex["conversations"]:
         role = turn.get("from", turn.get("role", "")).strip().lower()
         val = turn.get("value", turn.get("content", ""))
-        standard_role = "assistant" if role in ["model", "assistant", "답변"] else "user"
+        standard_role = "model" if role in ["model", "assistant", "답변"] else "user"
         cleaned.append({"role": standard_role, "content": val})
-    final_convs = []
-    for turn in cleaned:
-        if not final_convs and turn["role"] == "user": final_convs.append(turn)
-        elif final_convs:
-            if final_convs[-1]["role"] == turn["role"]:
-                final_convs.append({"role": "assistant" if turn["role"]=="user" else "user", "content": "계속 분석해 주세요."})
-            final_convs.append(turn)
-    try: return {"text": tokenizer.apply_chat_template(final_convs, tokenize=False)}
-    except: return {"text": ""}
+    try: 
+        return {"text": tokenizer.apply_chat_template(cleaned, tokenize=False, add_generation_prompt=False)}
+    except: 
+        return {"text": ""}
 
 ds = ds.map(fmt, batched=False).filter(lambda x: x["text"] != "")
 
@@ -54,5 +51,7 @@ trainer.train()
 try: del trainer
 except: pass
 gc.collect(); torch.cuda.empty_cache()
+
+print("\n📦 [시스템] 지정하신 최종 허깅페이스 창고(seojinju8818/marketing-v7)로 자동 업로드를 개시합니다...")
 model.push_to_hub_gguf("seojinju8818/marketing-v7", tokenizer, quantization_method = "q4_k_m", token = hf_token)
-print("\n🎉 [대성공] 마케팅 AI 자산(.gguf) 빌드가 최종 완결되었습니다!")
+print("\n🎉 [대성공] 멀티 파트 AI 자산(.gguf) 빌드가 최종 완결되었습니다!")
