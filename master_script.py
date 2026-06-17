@@ -1,28 +1,45 @@
 # ==========================================================================
-# 👑 PRO부동산 master_dataset.jsonl 멀티 라우팅 최종 스크립트 (v11.0 ORPO + CoT)
-# 🧠 Auto-Tuner: 데이터 165개 기준 → 3에포크 / LR 2e-05 자동 최적화
-# 💎 ORPO: 좋은 답변 강화 + 나쁜 패턴 억제 동시 학습 / 🔗 Chain-of-Thought 데이터 포맷
+# PRO부동산 master_dataset.jsonl 멀티 라우팅 최종 스크립트 (v12.0)
+# Auto-Tuner: 데이터 165개 기준 -> 3에포크 / LR 2e-05 자동 최적화
 # ==========================================================================
 import gc
 import torch
 from unsloth import FastLanguageModel
 from datasets import load_dataset
 from unsloth.chat_templates import get_chat_template
-from trl import SFTTrainer
-from transformers import TrainingArguments
+from trl import SFTTrainer, SFTConfig
 from google.colab import userdata
 
-try: hf_token = userdata.get('HF_TOKEN')
+try: hf_token = userdata.get("HF_TOKEN")
 except Exception: hf_token = True
 
-print("\n🔄 [시스템] 베이스 모델 로딩 중...")
-model, tokenizer = FastLanguageModel.from_pretrained(model_name = "unsloth/gemma-2-9b-it", max_seq_length = 1024, dtype = None, load_in_4bit = True)
-model = FastLanguageModel.get_peft_model(model, r = 16, target_modules = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"], lora_alpha = 32, lora_dropout = 0, bias = "none", use_gradient_checkpointing = "unsloth", random_state = 3407)
+print("
+[시스템] 베이스 모델 로딩 중...")
+model, tokenizer = FastLanguageModel.from_pretrained(
+    model_name = "unsloth/gemma-2-9b-it",
+    max_seq_length = 1024,
+    dtype = None,
+    load_in_4bit = True
+)
+model = FastLanguageModel.get_peft_model(
+    model,
+    r = 16,
+    target_modules = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
+    lora_alpha = 32,
+    lora_dropout = 0,
+    bias = "none",
+    use_gradient_checkpointing = "unsloth",
+    random_state = 3407
+)
 
-print("\n📦 [시스템] 지정된 멀티 깃허브 저장소(hijinjoo2000-prog/blog)에서 데이터를 원격 호출합니다...")
-ds = load_dataset("json", data_files="https://raw.githubusercontent.com/hijinjoo2000-prog/blog/main/master_dataset.jsonl", split="train")
+print("
+[시스템] 깃허브 저장소에서 데이터 원격 호출 중...")
+ds = load_dataset(
+    "json",
+    data_files="https://raw.githubusercontent.com/hijinjoo2000-prog/blog/main/master_dataset.jsonl",
+    split="train"
+)
 
-# ✨ [KeyError 해결] Unsloth의 공식 Gemma-2 템플릿 규격인 "gemma2"로 패치 완료
 tokenizer = get_chat_template(tokenizer, chat_template="gemma2")
 
 def fmt(ex):
@@ -32,29 +49,30 @@ def fmt(ex):
         val = turn.get("value", turn.get("content", ""))
         standard_role = "assistant" if role in ["model", "assistant", "답변"] else "user"
         cleaned.append({"role": standard_role, "content": val})
-    try: 
+    try:
         return {"text": tokenizer.apply_chat_template(cleaned, tokenize=False, add_generation_prompt=False)}
-    except Exception as e: 
+    except Exception as e:
         print("Formatting error:", e)
         return {"text": ""}
 
 ds = ds.map(fmt, batched=False).filter(lambda x: x["text"] != "")
 
-print("\n🏗️ [시스템] 가상 학습 엔진 조립 완료! (🧠 Auto-Tuner 최적 수치 적용)")
-from trl import SFTConfig
+print("
+[시스템] 학습 엔진 조립 완료! (Auto-Tuner 적용)")
 
-# ✅ 순수 SFTTrainer 기본 모드 — fmt()로 이미 chat_template 포맷이 완성된 text를 그대로 학습
-# train_on_responses_only 제거 이유: Gemma-2 특수 토큰 매칭 실패 → 레이블 전체 -100 마스킹 → Loss=18 유발
+# SFTTrainer 순수 기본 모드 (train_on_responses_only 제거 - Loss=18 유발 원인)
 trainer = SFTTrainer(
-    model = model, tokenizer = tokenizer, train_dataset = ds,
+    model = model,
+    tokenizer = tokenizer,
+    train_dataset = ds,
     dataset_text_field = "text",
     args = SFTConfig(
         max_seq_length = 1024,
         per_device_train_batch_size = 1,
-        gradient_accumulation_steps = 8,   # 🧠 Auto-Tuner 자동 세팅
-        warmup_steps = 6,                      # 🧠 Auto-Tuner 자동 세팅
-        num_train_epochs = 3,                  # 🧠 Auto-Tuner 자동 세팅 (총 데이터 165개 기준)
-        learning_rate = 2e-05,                         # 🧠 Auto-Tuner 자동 세팅
+        gradient_accumulation_steps = 8,
+        warmup_steps = 6,
+        num_train_epochs = 3,
+        learning_rate = 2e-05,
         fp16 = not torch.cuda.is_bf16_supported(),
         bf16 = torch.cuda.is_bf16_supported(),
         logging_steps = 1,
@@ -66,13 +84,17 @@ trainer = SFTTrainer(
         save_strategy = "no"
     )
 )
-print("\n🔥 [시스템] 파인튜닝 지식 주입 진짜 최종 시작...")
+
+print("
+[시스템] 파인튜닝 지식 주입 시작...")
 trainer.train()
 try: del trainer
 except: pass
-gc.collect(); torch.cuda.empty_cache()
+gc.collect()
+torch.cuda.empty_cache()
 
-print("\n📦 [시스템] 지정하신 최종 허깅페이스 창고(seojinju8818/marketing-v7)로 자동 업로드를 개시합니다...")
-model.push_to_hub_gguf("seojinju8818/marketing-v7", tokenizer, quantization_method = "q4_k_m", token = hf_token)
-print("\n🎉 [대성공] 멀티 파트 AI 자산(.gguf) 빌드가 최종 완결되었습니다!")
-
+print("
+[시스템] 허깅페이스 창고(seojinju8818/marketing-v7)로 GGUF 업로드 중...")
+model.push_to_hub_gguf("seojinju8818/marketing-v7", tokenizer, quantization_method="q4_k_m", token=hf_token)
+print("
+[대성공] GGUF 빌드 완결!")
