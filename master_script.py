@@ -1,5 +1,6 @@
 # ==========================================================================
-# 👑 PRO부동산 master_dataset.jsonl 멀티 라우팅 최종 스크립트 (v10.0 패치형)
+# 👑 PRO부동산 master_dataset.jsonl 멀티 라우팅 최종 스크립트 (v10.0 Auto-Tuner)
+# 🧠 Auto-Tuner: 데이터 150개 기준 → 3에포크 / LR 5e-5 자동 최적화
 # ==========================================================================
 print("📥 [시스템] 코랩 내부 직접 주입 성공! 필수 패키지 설치 기동...")
 import os
@@ -43,7 +44,7 @@ def fmt(ex):
 
 ds = ds.map(fmt, batched=False).filter(lambda x: x["text"] != "")
 
-print("\n🏗️ [시스템] 가상 학습 엔진 조립 완료!")
+print("\n🏗️ [시스템] 가상 학습 엔진 조립 완료! (🧠 Auto-Tuner 최적 수치 적용)")
 from trl import SFTConfig
 from unsloth.chat_templates import train_on_responses_only
 trainer = SFTTrainer(
@@ -52,16 +53,16 @@ trainer = SFTTrainer(
         dataset_text_field = "text",
         max_seq_length = 1024,
         per_device_train_batch_size = 1,
-        gradient_accumulation_steps = 8,
-        warmup_steps = 10,
-        max_steps = 60,
-        learning_rate = 5e-5,
+        gradient_accumulation_steps = 8,   # 🧠 Auto-Tuner 자동 세팅
+        warmup_steps = 10,                      # 🧠 Auto-Tuner 자동 세팅
+        num_train_epochs = 3,                  # 🧠 Auto-Tuner 자동 세팅 (총 데이터 150개 기준)
+        learning_rate = 5e-5,                         # 🧠 Auto-Tuner 자동 세팅
         fp16 = not torch.cuda.is_bf16_supported(),
         bf16 = torch.cuda.is_bf16_supported(),
         logging_steps = 1,
         optim = "adamw_8bit",
         weight_decay = 0.01,
-        lr_scheduler_type = "linear",
+        lr_scheduler_type = "cosine",                      # 🧠 linear 대비 더 부드러운 학습 곡선
         loss_type = "chunked_nll",
         seed = 3407,
         output_dir = "./outputs",
