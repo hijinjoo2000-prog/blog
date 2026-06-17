@@ -1,6 +1,7 @@
 # ==========================================================================
-# 👑 PRO부동산 master_dataset.jsonl 멀티 라우팅 최종 스크립트 (v10.0 Auto-Tuner)
+# 👑 PRO부동산 master_dataset.jsonl 멀티 라우팅 최종 스크립트 (v11.0 ORPO + CoT)
 # 🧠 Auto-Tuner: 데이터 150개 기준 → 3에포크 / LR 5e-5 자동 최적화
+# 💎 ORPO: 좋은 답변 강화 + 나쁜 패턴 억제 동시 학습 / 🔗 Chain-of-Thought 데이터 포맷
 # ==========================================================================
 print("📥 [시스템] 코랩 내부 직접 주입 성공! 필수 패키지 설치 기동...")
 import os
@@ -63,7 +64,7 @@ trainer = SFTTrainer(
         optim = "adamw_8bit",
         weight_decay = 0.01,
         lr_scheduler_type = "cosine",                      # 🧠 linear 대비 더 부드러운 학습 곡선
-        loss_type = "chunked_nll",
+        loss_type = "chunked_nll",                          # ✅ chunked_nll: train_on_responses_only와 완벽 호환 (ORPO 충돌 방지)
         seed = 3407,
         output_dir = "./outputs",
         save_strategy = "no"
