@@ -45,6 +45,7 @@ ds = ds.map(fmt, batched=False).filter(lambda x: x["text"] != "")
 
 print("\n🏗️ [시스템] 가상 학습 엔진 조립 완료!")
 from trl import SFTConfig
+from unsloth.chat_templates import train_on_responses_only
 trainer = SFTTrainer(
     model = model, tokenizer = tokenizer, train_dataset = ds,
     args = SFTConfig(
@@ -65,6 +66,12 @@ trainer = SFTTrainer(
         output_dir = "./outputs",
         save_strategy = "no"
     )
+)
+# ✅ [핵심 수정] User 질문은 loss 계산 제외, Model 답변 토큰만 학습 → loss 정상화
+trainer = train_on_responses_only(
+    trainer,
+    instruction_part = "<start_of_turn>user\n",
+    response_part = "<start_of_turn>model\n",
 )
 print("\n🔥 [시스템] 파인튜닝 지식 주입 진짜 최종 시작...")
 trainer.train()
