@@ -6,7 +6,8 @@
 print("📥 [시스템] 코랩 내부 직접 주입 성공! 필수 패키지 설치 기동...")
 import os
 os.system('pip install --no-deps "unsloth[colab-new] @ git+https://github.com/unslothai/unsloth.git"')
-os.system('pip install --no-deps trl peft loralib bitsandbytes xformers unsloth_zoo')
+os.system('pip install trl')  # ✅ trl은 의존성이 누락되지 않도록 단독으로 정상 설치 유도
+os.system('pip install --no-deps peft loralib bitsandbytes xformers unsloth_zoo')
 
 import gc
 import torch
@@ -24,8 +25,8 @@ print("\n🔄 [시스템] 베이스 모델 로딩 중...")
 model, tokenizer = FastLanguageModel.from_pretrained(model_name = "unsloth/gemma-2-9b-it", max_seq_length = 1024, dtype = None, load_in_4bit = True)
 model = FastLanguageModel.get_peft_model(model, r = 16, target_modules = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"], lora_alpha = 32, lora_dropout = 0, bias = "none", use_gradient_checkpointing = "unsloth", random_state = 3407)
 
-print("\n📦 [시스템] 지정된 멀티 깃허브 저장소(hijinjoo2000-prog/blog)에서 데이터를 원격 호출합니다...")
-ds = load_dataset("json", data_files="https://raw.githubusercontent.com/hijinjoo2000-prog/blog/main/master_dataset.jsonl", split="train")
+print("\n📦 [시스템] 지정된 멀티 깃허브 저장소({repo_path_full})에서 데이터를 원격 호출합니다...")
+ds = load_dataset("json", data_files="https://raw.githubusercontent.com/{repo_path_full}/main/master_dataset.jsonl", split="train")
 
 # ✨ [KeyError 해결] Unsloth의 공식 Gemma-2 템플릿 규격인 "gemma2"로 패치 완료
 tokenizer = get_chat_template(tokenizer, chat_template="gemma2")
@@ -46,7 +47,17 @@ def fmt(ex):
 ds = ds.map(fmt, batched=False).filter(lambda x: x["text"] != "")
 
 print("\n🏗️ [시스템] 가상 학습 엔진 조립 완료! (🧠 Auto-Tuner 최적 수치 적용)")
-from trl import SFTConfig, DataCollatorForCompletionOnlyLM
+from trl import SFTConfig
+
+# ✅ [3중 안전망 임포트] TRL 버전에 따른 DataCollator 위치 차이 완벽 해소
+try:
+    from trl import DataCollatorForCompletionOnlyLM
+except ImportError:
+    try:
+        from trl.trainer import DataCollatorForCompletionOnlyLM
+    except ImportError:
+        from trl.trainer.utils import DataCollatorForCompletionOnlyLM
+
 response_template = "<start_of_turn>model\n"
 collator = DataCollatorForCompletionOnlyLM(response_template=response_template, tokenizer=tokenizer)
 
