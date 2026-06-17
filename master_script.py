@@ -16,7 +16,7 @@ try: hf_token = userdata.get('HF_TOKEN')
 except Exception: hf_token = True
 
 print("\n🔄 [시스템] 베이스 모델 로딩 중...")
-model, tokenizer = FastLanguageModel.from_pretrained(model_name = "unsloth/gemma-2-9b-it", max_seq_length = 1024, dtype = None, load_in_4bit = True)
+model, tokenizer = FastLanguageModel.from_pretrained(model_name = "unsloth/gemma-2-9b-it", max_seq_length = 4096, dtype = None, load_in_4bit = True)
 model = FastLanguageModel.get_peft_model(model, r = 16, target_modules = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"], lora_alpha = 32, lora_dropout = 0, bias = "none", use_gradient_checkpointing = "unsloth", random_state = 3407)
 
 print("\n📦 [시스템] 지정된 멀티 깃허브 저장소(hijinjoo2000-prog/blog)에서 데이터를 원격 호출합니다...")
@@ -47,13 +47,14 @@ print("샘플 확인:", ds[0]["text"][:200])
 print("\n🏗️ [시스템] 가상 학습 엔진 조립 완료! (🧠 Auto-Tuner 최적 수치 적용)")
 from trl import SFTConfig
 
-# ✅ TRL 1.6.0 완전 호환: dataset_text_field는 SFTConfig 안에 위치해야 함
-# (SFTTrainer에 직접 전달 시 **kwargs로 흡수되어 무시됨 → Loss=18 유발)
+# ✅ SFTTrainer 및 SFTConfig 둘 다 파라미터를 넘겨주어 TRL 버전에 무관하게 완벽 작동
 trainer = SFTTrainer(
     model = model, tokenizer = tokenizer, train_dataset = ds,
+    dataset_text_field = "text",
+    max_seq_length = 4096,
     args = SFTConfig(
-        dataset_text_field = "text",                       # ✅ TRL 1.6.0: SFTConfig 안으로 이동
-        max_seq_length = 2048,                             # ✅ 한국어 블로그 글 잘림 방지
+        dataset_text_field = "text",
+        max_seq_length = 4096,                             # ✅ 한국어 블로그 글 잘림 방지 (4096)
         per_device_train_batch_size = 1,
         gradient_accumulation_steps = 8,   # 🧠 Auto-Tuner 자동 세팅
         warmup_steps = 11,                      # 🧠 Auto-Tuner 자동 세팅
