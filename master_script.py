@@ -3,12 +3,6 @@
 # 🧠 Auto-Tuner: 데이터 165개 기준 → 1에포크 / LR 1e-05 자동 최적화
 # 💎 ORPO: 좋은 답변 강화 + 나쁜 패턴 억제 동시 학습 / 🔗 Chain-of-Thought 데이터 포맷
 # ==========================================================================
-print("📥 [시스템] 코랩 내부 직접 주입 성공! 필수 패키지 설치 기동...")
-import os
-os.system('pip install --no-deps "unsloth[colab-new] @ git+https://github.com/unslothai/unsloth.git"')
-os.system('pip install --upgrade trl')  # ✅ trl을 강제 업그레이드 설치하여 버전 꼬임 완벽 해소
-os.system('pip install --no-deps peft loralib bitsandbytes xformers unsloth_zoo')
-
 import gc
 import torch
 from unsloth import FastLanguageModel
