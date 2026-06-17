@@ -20,7 +20,7 @@ except Exception: hf_token = True
 
 print("\n🔄 [시스템] 베이스 모델 로딩 중...")
 model, tokenizer = FastLanguageModel.from_pretrained(model_name = "unsloth/gemma-2-9b-it", max_seq_length = 2048, dtype = None, load_in_4bit = True)
-model = FastLanguageModel.get_peft_model(model, r = 16, target_modules = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"], lora_alpha = 16, lora_dropout = 0, bias = "none", use_gradient_checkpointing = "unsloth", random_state = 3407)
+model = FastLanguageModel.get_peft_model(model, r = 16, target_modules = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"], lora_alpha = 32, lora_dropout = 0, bias = "none", use_gradient_checkpointing = "unsloth", random_state = 3407)
 
 print("\n📦 [시스템] 지정된 멀티 깃허브 저장소(hijinjoo2000-prog/blog)에서 데이터를 원격 호출합니다...")
 ds = load_dataset("json", data_files="https://raw.githubusercontent.com/hijinjoo2000-prog/blog/main/master_dataset.jsonl", split="train")
@@ -52,9 +52,9 @@ trainer = SFTTrainer(
         max_seq_length = 2048,
         per_device_train_batch_size = 2,
         gradient_accumulation_steps = 4,
-        warmup_steps = 5,
+        warmup_steps = 10,
         max_steps = 60,
-        learning_rate = 2e-4,
+        learning_rate = 5e-5,
         fp16 = not torch.cuda.is_bf16_supported(),
         bf16 = torch.cuda.is_bf16_supported(),
         logging_steps = 1,
