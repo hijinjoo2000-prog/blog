@@ -43,22 +43,11 @@ ds = ds.map(fmt, batched=False).filter(lambda x: x["text"] != "")
 print("\n🏗️ [시스템] 가상 학습 엔진 조립 완료! (🧠 Auto-Tuner 최적 수치 적용)")
 from trl import SFTConfig
 
-# ✅ [3중 안전망 임포트] TRL 버전에 따른 DataCollator 위치 차이 완벽 해소
-try:
-    from trl import DataCollatorForCompletionOnlyLM
-except ImportError:
-    try:
-        from trl.trainer import DataCollatorForCompletionOnlyLM
-    except ImportError:
-        from trl.trainer.utils import DataCollatorForCompletionOnlyLM
-
-response_template = "<start_of_turn>model\n"
-collator = DataCollatorForCompletionOnlyLM(response_template=response_template, tokenizer=tokenizer)
-
+# ✅ [TRL 1.6.0 완전 호환] DataCollatorForCompletionOnlyLM은 TRL 1.6.0에서 삭제됨
+# → SFTTrainer 표준 모드로 전환 (chat_template 기반 자동 마스킹 내장)
 trainer = SFTTrainer(
     model = model, tokenizer = tokenizer, train_dataset = ds,
     dataset_text_field = "text",
-    data_collator = collator,
     args = SFTConfig(
         max_seq_length = 1024,
         per_device_train_batch_size = 1,
@@ -72,7 +61,6 @@ trainer = SFTTrainer(
         optim = "adamw_8bit",
         weight_decay = 0.01,
         lr_scheduler_type = "cosine",                      # 🧠 linear 대비 더 부드러운 학습 곡선
-        loss_type = "chunked_nll",                          # ✅ chunked_nll: 완벽 호환
         seed = 3407,
         output_dir = "./outputs",
         save_strategy = "no"
