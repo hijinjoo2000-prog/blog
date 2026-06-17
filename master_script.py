@@ -1,6 +1,6 @@
 # ==========================================================================
 # 👑 PRO부동산 master_dataset.jsonl 멀티 라우팅 최종 스크립트 (v11.0 ORPO + CoT)
-# 🧠 Auto-Tuner: 데이터 165개 기준 → 1에포크 / LR 1e-05 자동 최적화
+# 🧠 Auto-Tuner: 데이터 165개 기준 → 3에포크 / LR 2e-05 자동 최적화
 # 💎 ORPO: 좋은 답변 강화 + 나쁜 패턴 억제 동시 학습 / 🔗 Chain-of-Thought 데이터 포맷
 # ==========================================================================
 import gc
@@ -53,9 +53,9 @@ trainer = SFTTrainer(
         max_seq_length = 1024,
         per_device_train_batch_size = 1,
         gradient_accumulation_steps = 8,   # 🧠 Auto-Tuner 자동 세팅
-        warmup_steps = 20,                      # 🧠 Auto-Tuner 자동 세팅
-        num_train_epochs = 1,                  # 🧠 Auto-Tuner 자동 세팅 (총 데이터 165개 기준)
-        learning_rate = 1e-05,                         # 🧠 Auto-Tuner 자동 세팅
+        warmup_steps = 6,                      # 🧠 Auto-Tuner 자동 세팅
+        num_train_epochs = 3,                  # 🧠 Auto-Tuner 자동 세팅 (총 데이터 165개 기준)
+        learning_rate = 2e-05,                         # 🧠 Auto-Tuner 자동 세팅
         fp16 = not torch.cuda.is_bf16_supported(),
         bf16 = torch.cuda.is_bf16_supported(),
         logging_steps = 1,
