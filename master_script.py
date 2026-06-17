@@ -6,7 +6,7 @@
 print("📥 [시스템] 코랩 내부 직접 주입 성공! 필수 패키지 설치 기동...")
 import os
 os.system('pip install --no-deps "unsloth[colab-new] @ git+https://github.com/unslothai/unsloth.git"')
-os.system('pip install trl')  # ✅ trl은 의존성이 누락되지 않도록 단독으로 정상 설치 유도
+os.system('pip install --upgrade trl')  # ✅ trl을 강제 업그레이드 설치하여 버전 꼬임 완벽 해소
 os.system('pip install --no-deps peft loralib bitsandbytes xformers unsloth_zoo')
 
 import gc
