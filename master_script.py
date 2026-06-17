@@ -42,9 +42,10 @@ ds = ds.map(fmt, batched=False).filter(lambda x: x["text"] != "")
 
 print("\n🏗️ [시스템] 가상 학습 엔진 조립 완료! (🧠 Auto-Tuner 최적 수치 적용)")
 from trl import SFTConfig
+from unsloth.chat_templates import train_on_responses_only
 
-# ✅ [TRL 1.6.0 완전 호환] DataCollatorForCompletionOnlyLM은 TRL 1.6.0에서 삭제됨
-# → SFTTrainer 표준 모드로 전환 (chat_template 기반 자동 마스킹 내장)
+# ✅ [Loss=18 완전 해결] TRL 1.6.0에서 DataCollatorForCompletionOnlyLM 삭제됨
+# → Unsloth 전용 train_on_responses_only 사용 (답변 부분만 loss 계산 = 정상 학습)
 trainer = SFTTrainer(
     model = model, tokenizer = tokenizer, train_dataset = ds,
     dataset_text_field = "text",
@@ -65,6 +66,13 @@ trainer = SFTTrainer(
         output_dir = "./outputs",
         save_strategy = "no"
     )
+)
+
+# 🎯 핵심: 질문(user) 부분 loss 제외 → 답변(model) 부분만 학습 (Loss 정상화)
+trainer = train_on_responses_only(
+    trainer,
+    instruction_part = "<start_of_turn>user\n",
+    response_part    = "<start_of_turn>model\n",
 )
 print("\n🔥 [시스템] 파인튜닝 지식 주입 진짜 최종 시작...")
 trainer.train()
