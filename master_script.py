@@ -25,8 +25,8 @@ print("\n🔄 [시스템] 베이스 모델 로딩 중...")
 model, tokenizer = FastLanguageModel.from_pretrained(model_name = "unsloth/gemma-2-9b-it", max_seq_length = 1024, dtype = None, load_in_4bit = True)
 model = FastLanguageModel.get_peft_model(model, r = 16, target_modules = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"], lora_alpha = 32, lora_dropout = 0, bias = "none", use_gradient_checkpointing = "unsloth", random_state = 3407)
 
-print("\n📦 [시스템] 지정된 멀티 깃허브 저장소({repo_path_full})에서 데이터를 원격 호출합니다...")
-ds = load_dataset("json", data_files="https://raw.githubusercontent.com/{repo_path_full}/main/master_dataset.jsonl", split="train")
+print("\n📦 [시스템] 지정된 멀티 깃허브 저장소(hijinjoo2000-prog/blog)에서 데이터를 원격 호출합니다...")
+ds = load_dataset("json", data_files="https://raw.githubusercontent.com/hijinjoo2000-prog/blog/main/master_dataset.jsonl", split="train")
 
 # ✨ [KeyError 해결] Unsloth의 공식 Gemma-2 템플릿 규격인 "gemma2"로 패치 완료
 tokenizer = get_chat_template(tokenizer, chat_template="gemma2")
