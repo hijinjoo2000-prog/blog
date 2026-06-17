@@ -33,11 +33,12 @@ def fmt(ex):
     for turn in ex["conversations"]:
         role = turn.get("from", turn.get("role", "")).strip().lower()
         val = turn.get("value", turn.get("content", ""))
-        standard_role = "model" if role in ["model", "assistant", "답변"] else "user"
+        standard_role = "assistant" if role in ["model", "assistant", "답변"] else "user"
         cleaned.append({"role": standard_role, "content": val})
     try: 
         return {"text": tokenizer.apply_chat_template(cleaned, tokenize=False, add_generation_prompt=False)}
-    except: 
+    except Exception as e: 
+        print("Formatting error:", e)
         return {"text": ""}
 
 ds = ds.map(fmt, batched=False).filter(lambda x: x["text"] != "")
