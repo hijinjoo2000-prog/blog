@@ -45,7 +45,9 @@ print(f"\n[시스템] 학습 데이터 준비 완료: {len(ds)}개")
 print("샘플 확인:", ds[0]["text"][:200])
 
 print("\n🏗️ [시스템] 가상 학습 엔진 조립 완료! (🧠 Auto-Tuner 최적 수치 적용)")
-from trl import SFTConfig, DataCollatorForCompletionOnlyLM
+from trl import SFTConfig
+# 최신 TRL 버전의 정확한 서랍 위치로 개별 호출
+from trl.trainer.utils import DataCollatorForCompletionOnlyLM
 
 # ✅ 대화 데이터셋의 답변(Response) 부분만 손실값 계산하여 Loss=18 현상 완전 방지
 # (Gemma-2의 대화 템플릿에 해당하는 <start_of_turn>model\n 기준)
