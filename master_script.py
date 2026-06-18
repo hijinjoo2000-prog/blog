@@ -48,10 +48,8 @@ print("\n🏗️ [시스템] 가상 학습 엔진 조립 완료! (🧠 Auto-Tune
 from trl import SFTConfig, DataCollatorForCompletionOnlyLM
 
 # ✅ 대화 데이터셋의 답변(Response) 부분만 손실값 계산하여 Loss=18 현상 완전 방지
-# (Gemma-2의 대화 템플릿에 해당하는 <start_of_turn>model
- 기준)
-response_template = "<start_of_turn>model
-"
+# (Gemma-2의 대화 템플릿에 해당하는 <start_of_turn>model\n 기준)
+response_template = "<start_of_turn>model\n"
 collator = DataCollatorForCompletionOnlyLM(response_template=response_template, tokenizer=tokenizer)
 
 # ✅ SFTTrainer 및 SFTConfig 둘 다 파라미터를 넘겨주어 TRL 버전에 무관하게 완벽 작동
