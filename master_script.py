@@ -1,6 +1,6 @@
 # ==========================================================================
 # 👑 PRO부동산 master_dataset.jsonl 멀티 라우팅 최종 스크립트 (v11.0 CoT + train_on_responses_only)
-# 🧠 Auto-Tuner: 데이터 150개 기준 → 4에포크 / LR 4e-05 자동 최적화
+# 🧠 Auto-Tuner: 데이터 150개 기준 → 5에포크 / LR 0.00014 자동 최적화
 # ==========================================================================
 import gc
 import torch
@@ -37,7 +37,24 @@ model = FastModel.get_peft_model(
 )
 
 print("\n📦 [시스템] 지정된 멀티 깃허브 저장소(hijinjoo2000-prog/blog)에서 데이터를 원격 호출합니다...")
-ds = load_dataset("json", data_files="https://raw.githubusercontent.com/hijinjoo2000-prog/blog/main/master_dataset.jsonl", split="train")
+import urllib.request
+url = "https://raw.githubusercontent.com/hijinjoo2000-prog/blog/main/master_dataset.jsonl"
+try:
+    gh_token = userdata.get('GITHUB_TOKEN')
+    req = urllib.request.Request(url, headers={"Authorization": f"token {gh_token}"})
+    print("🔑 GITHUB_TOKEN 보안 인증 연동 성공!")
+except Exception:
+    req = urllib.request.Request(url)
+    print("ℹ️ GITHUB_TOKEN이 Secrets에 없거나 오류가 발생하여 비인증(Public) 호출을 수행합니다.")
+
+try:
+    with urllib.request.urlopen(req) as response:
+        with open('master_dataset.jsonl', 'wb') as f:
+            f.write(response.read())
+    ds = load_dataset('json', data_files='master_dataset.jsonl', split='train')
+except Exception as e:
+    print("❌ 데이터 로드 에러! 저장소가 Private인데 GITHUB_TOKEN이 비어있거나 권한이 없는지 확인하세요.")
+    raise e
 
 tokenizer = get_chat_template(tokenizer, chat_template="gemma-4")
 
@@ -74,16 +91,16 @@ trainer = SFTTrainer(
         dataset_text_field = "text",
         max_seq_length = 4096,                             # ✅ 한국어 블로그 글 잘림 방지 (4096)
         per_device_train_batch_size = 1,
-        gradient_accumulation_steps = 8,   # 🧠 Auto-Tuner 자동 세팅
-        warmup_steps = 7,                      # 🧠 Auto-Tuner 자동 세팅
-        num_train_epochs = 4,                  # 🧠 Auto-Tuner 자동 세팅 (총 데이터 150개 기준)
-        learning_rate = 4e-05,                         # 🧠 Auto-Tuner 자동 세팅
+        gradient_accumulation_steps = 4,   # 🧠 Auto-Tuner 자동 세팅
+        warmup_steps = 18,                      # 🧠 Auto-Tuner 자동 세팅
+        num_train_epochs = 5,                  # 🧠 Auto-Tuner 자동 세팅 (총 데이터 150개 기준)
+        learning_rate = 0.00014,                         # 🧠 Auto-Tuner 자동 세팅
         fp16 = not torch.cuda.is_bf16_supported(),
         bf16 = torch.cuda.is_bf16_supported(),
         logging_steps = 1,
         optim = "adamw_8bit",
-        weight_decay = 0.01,
-        lr_scheduler_type = "cosine",
+        weight_decay = 0.001,
+        lr_scheduler_type = "linear",
         seed = 3407,
         output_dir = "./outputs",
         save_strategy = "no",
