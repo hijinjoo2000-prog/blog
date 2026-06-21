@@ -1,6 +1,6 @@
 # ==========================================================================
 # 👑 PRO부동산 master_dataset.jsonl 멀티 라우팅 최종 스크립트 (v11.0 CoT + train_on_responses_only)
-# 🧠 Auto-Tuner: 데이터 150개 기준 → 5에포크 / LR 0.00014 자동 최적화
+# 🧠 Auto-Tuner: 데이터 1716개 기준 → 5에포크 / LR 0.0001 자동 최적화
 # ==========================================================================
 import gc
 import torch
@@ -91,10 +91,10 @@ trainer = SFTTrainer(
         dataset_text_field = "text",
         max_seq_length = 4096,                             # ✅ 한국어 블로그 글 잘림 방지 (4096)
         per_device_train_batch_size = 1,
-        gradient_accumulation_steps = 4,   # 🧠 Auto-Tuner 자동 세팅
-        warmup_steps = 18,                      # 🧠 Auto-Tuner 자동 세팅
-        num_train_epochs = 5,                  # 🧠 Auto-Tuner 자동 세팅 (총 데이터 150개 기준)
-        learning_rate = 0.00014,                         # 🧠 Auto-Tuner 자동 세팅
+        gradient_accumulation_steps = 8,   # 🧠 Auto-Tuner 자동 세팅
+        warmup_steps = 107,                      # 🧠 Auto-Tuner 자동 세팅
+        num_train_epochs = 5,                  # 🧠 Auto-Tuner 자동 세팅 (총 데이터 1716개 기준)
+        learning_rate = 0.0001,                         # 🧠 Auto-Tuner 자동 세팅
         fp16 = not torch.cuda.is_bf16_supported(),
         bf16 = torch.cuda.is_bf16_supported(),
         logging_steps = 1,
