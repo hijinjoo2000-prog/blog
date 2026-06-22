@@ -11,8 +11,12 @@ from trl import SFTTrainer, SFTConfig
 from transformers import TrainingArguments
 from google.colab import userdata
 
-try: hf_token = userdata.get('HF_TOKEN')
-except Exception: hf_token = True
+try:
+    hf_token = userdata.get('HF_TOKEN')
+    from huggingface_hub import login
+    login(token=hf_token)
+except Exception:
+    hf_token = True
 
 print("\n🔄 [시스템] 베이스 모델 로딩 중...")
 model, tokenizer = FastLanguageModel.from_pretrained(
@@ -86,16 +90,16 @@ trainer = SFTTrainer(
         max_seq_length = 1024,
         per_device_train_batch_size = 1,
         gradient_accumulation_steps = 2,
-        num_train_epochs = 1,
-        max_steps = 100,
-        warmup_steps = 0,
+        num_train_epochs = 8,
+        max_steps = -1,
+        warmup_steps = 5,
         learning_rate = 0.00025,
         fp16 = not torch.cuda.is_bf16_supported(),
         bf16 = torch.cuda.is_bf16_supported(),
         logging_steps = 1,
         optim = "adamw_8bit",
         weight_decay = 0.001,
-        lr_scheduler_type = "constant",
+        lr_scheduler_type = "linear",
         seed = 3407,
         output_dir = "./outputs",
         save_strategy = "no",
