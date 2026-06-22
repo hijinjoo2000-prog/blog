@@ -1,13 +1,13 @@
 # ==========================================================================
 # 👑 PRO부동산 master_dataset.jsonl 멀티 라우팅 최종 스크립트 (v11.0 CoT + train_on_responses_only)
-# 🧠 Auto-Tuner: 데이터 21개 기준 → 8에포크 / LR 0.0003 자동 최적화
+# 🧠 Auto-Tuner & Expert: 데이터 21개 기준 → 8에포크 / LR 0.00025 설정
 # ==========================================================================
 import gc
 import torch
-from unsloth import FastModel
+from unsloth import FastModel, FastLanguageModel
 from datasets import load_dataset
 from unsloth.chat_templates import get_chat_template
-from trl import SFTTrainer
+from trl import SFTTrainer, SFTConfig
 from transformers import TrainingArguments
 from google.colab import userdata
 
@@ -15,7 +15,7 @@ try: hf_token = userdata.get('HF_TOKEN')
 except Exception: hf_token = True
 
 print("\n🔄 [시스템] 베이스 모델 로딩 중...")
-model, tokenizer = FastModel.from_pretrained(
+model, tokenizer = FastLanguageModel.from_pretrained(
     model_name = "unsloth/gemma-4-E2B-it",
     max_seq_length = 1024,
     dtype = None,
@@ -23,7 +23,7 @@ model, tokenizer = FastModel.from_pretrained(
     full_finetuning = False,
 )
 
-model = FastModel.get_peft_model(
+model = FastLanguageModel.get_peft_model(
     model,
     finetune_language_layers = True,
     finetune_attention_modules = True,
@@ -31,7 +31,7 @@ model = FastModel.get_peft_model(
     finetune_vision_layers = False,
     r = 16,
     lora_alpha = 32,
-    lora_dropout = 0,
+    lora_dropout = 0.0,
     bias = "none",
     random_state = 3407,
 )
@@ -41,7 +41,7 @@ import urllib.request
 url = "https://raw.githubusercontent.com/hijinjoo2000-prog/blog/main/master_dataset.jsonl"
 try:
     gh_token = userdata.get('GITHUB_TOKEN')
-    req = urllib.request.Request(url, headers={"Authorization": f"token {gh_token}"})
+    req = urllib.request.Request(url, headers={"Authorization": f"token {gh_token}"} )
     print("🔑 GITHUB_TOKEN 보안 인증 연동 성공!")
 except Exception:
     req = urllib.request.Request(url)
@@ -53,7 +53,7 @@ try:
             f.write(response.read())
     ds = load_dataset('json', data_files='master_dataset.jsonl', split='train')
 except Exception as e:
-    print("❌ 데이터 로드 에러! 저장소가 Private인데 GITHUB_TOKEN이 비어있거나 권한이 없는지 확인하세요.")
+    print("❌ 데이터 로드 에러!")
     raise e
 
 tokenizer = get_chat_template(tokenizer, chat_template="gemma-4")
@@ -66,21 +66,15 @@ def fmt(ex):
         standard_role = "assistant" if role in ["model", "assistant", "답변"] else "user"
         cleaned.append({"role": standard_role, "content": val})
     try: 
-        return {"text": tokenizer.apply_chat_template(cleaned, tokenize=False, add_generation_prompt=False)}
+        return {"text": tokenizer.apply_chat_template(cleaned, tokenize=False, add_generation_prompt=False).removeprefix("<bos>")}
     except Exception as e: 
         print("Formatting error:", e)
         return {"text": ""}
 
 ds = ds.map(fmt, batched=False).filter(lambda x: x["text"] != "")
-# ✅ conversations 컬럼 제거 → text 컬럼만 학습 (SFTTrainer 혼란 방지)
 ds = ds.remove_columns([col for col in ds.column_names if col != "text"])
 print(f"\n[시스템] 학습 데이터 준비 완료: {len(ds)}개")
-print("샘플 확인:", ds[0]["text"][:200])
 
-print("\n🏗️ [시스템] 가상 학습 엔진 조립 완료! (🧠 Auto-Tuner 최적 수치 적용)")
-from trl import SFTConfig
-
-# ✅ SFTTrainer 및 SFTConfig 둘 다 파라미터를 넘겨주어 TRL 버전에 무관하게 완벽 작동
 trainer = SFTTrainer(
     model = model,
     tokenizer = tokenizer,
@@ -91,16 +85,17 @@ trainer = SFTTrainer(
         dataset_text_field = "text",
         max_seq_length = 1024,
         per_device_train_batch_size = 1,
-        gradient_accumulation_steps = 4,
-        warmup_steps = 5,
-        max_steps = 300,
-        learning_rate = 0.0003,
+        gradient_accumulation_steps = 2,
+        num_train_epochs = 1,
+        max_steps = 100,
+        warmup_steps = 0,
+        learning_rate = 0.00025,
         fp16 = not torch.cuda.is_bf16_supported(),
         bf16 = torch.cuda.is_bf16_supported(),
         logging_steps = 1,
         optim = "adamw_8bit",
         weight_decay = 0.001,
-        lr_scheduler_type = "linear",
+        lr_scheduler_type = "constant",
         seed = 3407,
         output_dir = "./outputs",
         save_strategy = "no",
@@ -108,14 +103,11 @@ trainer = SFTTrainer(
     ),
 )
 
-# 🎭 응답(assistant)만 학습 — 질문 패턴은 마스킹(효율↑·품질↑)
-# ⚠️ 마커는 모델/버전마다 다름(<|turn> vs <start_of_turn>) → 실제 텍스트에서 자동 감지
 from unsloth.chat_templates import train_on_responses_only
 _t = ds[0]["text"]
 _im = "<|turn>user\n" if "<|turn>user" in _t else "<start_of_turn>user\n"
 _rm = "<|turn>model\n" if "<|turn>model" in _t else "<start_of_turn>model\n"
 trainer = train_on_responses_only(trainer, instruction_part=_im, response_part=_rm)
-print(f"✅ 마스킹 마커 자동감지: {_rm.strip()} — 학습 준비 완료")
 
 print("\n🔥 [시스템] 파인튜닝 지식 주입 진짜 최종 시작...")
 trainer_stats = trainer.train()
@@ -123,9 +115,9 @@ print("🎉 학습 완료! 최종 loss:", round(trainer_stats.training_loss, 4))
 print("💡 loss 0.2~0.4면 sweet spot. 너무 낮으면(<0.1) 과적합 — 에포크나 max_steps를 조절해 보세요.")
 
 print("\n🧪 [테스트] 학습이 완료된 모델로 자가 진단 테스트를 가동합니다...")
-FastModel.for_inference(model)
+FastLanguageModel.for_inference(model)
 def chat(prompt, max_tokens=220):
-    msg = [{"role": "user", "content": [{"type": "text", "text": prompt}]}]
+    msg = [{"role": "user", "content": prompt}]
     inp = tokenizer.apply_chat_template(msg, add_generation_prompt=True, tokenize=True, return_dict=True, return_tensors="pt").to("cuda")
     if inp["input_ids"][0,0].item() == tokenizer.bos_token_id:
         inp["input_ids"] = inp["input_ids"][:,1:]; inp["attention_mask"] = inp["attention_mask"][:,1:]
@@ -135,6 +127,7 @@ def chat(prompt, max_tokens=220):
 
 chat("내 사업/지식에 대해 아는 걸 알려줘")
 chat("너는 무엇을 도와줄 수 있어?")
+chat("내가 인서울 재개발지 어느곳을 정하던지, 최적화 블로그 글을 작성할 수 있니?")
 
 try: del trainer
 except: pass
