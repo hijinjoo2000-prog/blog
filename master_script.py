@@ -1,6 +1,6 @@
 # ==========================================================================
 # 👑 PRO부동산 master_dataset.jsonl 멀티 라우팅 최종 스크립트 (v11.0 CoT + train_on_responses_only)
-# 🧠 Auto-Tuner & Expert: 데이터 21개 기준 → 8에포크 / LR 0.00025 설정
+# 🧠 Auto-Tuner & Expert: 데이터 105개 기준 → 8에포크 / LR 0.0003 설정
 # ==========================================================================
 import gc
 import torch
@@ -89,11 +89,11 @@ trainer = SFTTrainer(
         dataset_text_field = "text",
         max_seq_length = 1024,
         per_device_train_batch_size = 1,
-        gradient_accumulation_steps = 2,
+        gradient_accumulation_steps = 4,
         num_train_epochs = 8,
         max_steps = -1,
         warmup_steps = 5,
-        learning_rate = 0.00025,
+        learning_rate = 0.0003,
         fp16 = not torch.cuda.is_bf16_supported(),
         bf16 = torch.cuda.is_bf16_supported(),
         logging_steps = 1,
@@ -144,9 +144,10 @@ try: del trainer
 except: pass
 gc.collect(); torch.cuda.empty_cache()
 
-print("\n📦 [시스템] 지정하신 최종 허깅페이스 창고(seojinju8818/marketing-v10)로 LoRA 어댑터 가중치(.safetensors) 업로드를 시작합니다...")
-model.push_to_hub("seojinju8818/marketing-v10", tokenizer = tokenizer, token = hf_token)
+print("\n📦 [시스템] 지정하신 최종 허깅페이스 창고(seojinju8818/marketing-v8)로 LoRA 어댑터 가중치(.safetensors) 업로드를 시작합니다...")
+model.push_to_hub("seojinju8818/marketing-v8", token = hf_token)
+tokenizer.push_to_hub("seojinju8818/marketing-v8", token = hf_token)
 
-print("\n📦 [시스템] 지정하신 최종 허깅페이스 창고(seojinju8818/marketing-v10)로 GGUF 빌드 및 업로드를 시작합니다...")
-model.push_to_hub_gguf("seojinju8818/marketing-v10", tokenizer, quantization_method = "q4_k_m", token = hf_token)
+print("\n📦 [시스템] 지정하신 최종 허깅페이스 창고(seojinju8818/marketing-v8)로 GGUF 빌드 및 업로드를 시작합니다...")
+model.push_to_hub_gguf("seojinju8818/marketing-v8", tokenizer, quantization_method = "q4_k_m", token = hf_token)
 print("\n🎉 [대성공] LoRA 어댑터(.safetensors) 및 GGUF 모델 빌드/업로드가 완료되었습니다!")
