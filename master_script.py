@@ -115,8 +115,15 @@ trainer = train_on_responses_only(trainer, instruction_part=_im, response_part=_
 
 print("\n🔥 [시스템] 파인튜닝 지식 주입 진짜 최종 시작...")
 trainer_stats = trainer.train()
-print("🎉 학습 완료! 최종 loss:", round(trainer_stats.training_loss, 4))
-print("💡 loss 0.2~0.4면 sweet spot. 너무 낮으면(<0.1) 과적합 — 에포크나 max_steps를 조절해 보세요.")
+print("🎉 학습 완료! 누적 평균 loss:", round(trainer_stats.training_loss, 4))
+_last_loss = "알 수 없음"
+for log in reversed(trainer.state.log_history):
+    if "loss" in log:
+        _last_loss = round(log["loss"], 4)
+        break
+print("📊 최종 단계(마지막 스텝) 실시간 loss:", _last_loss)
+print("💡 [중요] "누적 평균 loss"는 학습 초반(첫 에포크)의 높은 오차가 누적 합산된 평균값입니다.")
+print("💡 모델이 실제 잘 외웠는지는 마지막 스텝 실시간 loss가 Sweet Spot(0.2~0.4)에 도달했는지 확인해 주세요!")
 
 print("\n🧪 [테스트] 학습이 완료된 모델로 자가 진단 테스트를 가동합니다...")
 FastLanguageModel.for_inference(model)
@@ -137,6 +144,9 @@ try: del trainer
 except: pass
 gc.collect(); torch.cuda.empty_cache()
 
-print("\n📦 [시스템] 지정하신 최종 허깅페이스 창고(seojinju8818/marketing-v8)로 자동 업로드를 개시합니다...")
-model.push_to_hub_gguf("seojinju8818/marketing-v8", tokenizer, quantization_method = "q4_k_m", token = hf_token)
-print("\n🎉 [대성공] GGUF 빌드 및 업로드가 완료되었습니다!")
+print("\n📦 [시스템] 지정하신 최종 허깅페이스 창고(seojinju8818/marketing-v10)로 LoRA 어댑터 가중치(.safetensors) 업로드를 시작합니다...")
+model.push_to_hub("seojinju8818/marketing-v10", tokenizer = tokenizer, token = hf_token)
+
+print("\n📦 [시스템] 지정하신 최종 허깅페이스 창고(seojinju8818/marketing-v10)로 GGUF 빌드 및 업로드를 시작합니다...")
+model.push_to_hub_gguf("seojinju8818/marketing-v10", tokenizer, quantization_method = "q4_k_m", token = hf_token)
+print("\n🎉 [대성공] LoRA 어댑터(.safetensors) 및 GGUF 모델 빌드/업로드가 완료되었습니다!")
