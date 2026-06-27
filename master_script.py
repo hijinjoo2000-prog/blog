@@ -144,10 +144,10 @@ try: del trainer
 except: pass
 gc.collect(); torch.cuda.empty_cache()
 
-print("\n📦 [시스템] 지정하신 최종 허깅페이스 창고(seojinju8818/marketing-v8)로 LoRA 어댑터 가중치(.safetensors) 업로드를 시작합니다...")
-model.push_to_hub("seojinju8818/marketing-v8", token = hf_token)
-tokenizer.push_to_hub("seojinju8818/marketing-v8", token = hf_token)
+print("\n📦 [시스템] 지정하신 최종 허깅페이스 창고(seojinju8818/marketing-v11)로 LoRA 어댑터 가중치(.safetensors) 업로드를 시작합니다...")
+model.push_to_hub("seojinju8818/marketing-v11", token = hf_token)
+tokenizer.push_to_hub("seojinju8818/marketing-v11", token = hf_token)
 
-print("\n📦 [시스템] 지정하신 최종 허깅페이스 창고(seojinju8818/marketing-v8)로 GGUF 빌드 및 업로드를 시작합니다...")
-model.push_to_hub_gguf("seojinju8818/marketing-v8", tokenizer, quantization_method = "q4_k_m", token = hf_token)
+print("\n📦 [시스템] 지정하신 최종 허깅페이스 창고(seojinju8818/marketing-v11)로 GGUF 빌드 및 업로드를 시작합니다...")
+model.push_to_hub_gguf("seojinju8818/marketing-v11", tokenizer, quantization_method = "q4_k_m", token = hf_token)
 print("\n🎉 [대성공] LoRA 어댑터(.safetensors) 및 GGUF 모델 빌드/업로드가 완료되었습니다!")
